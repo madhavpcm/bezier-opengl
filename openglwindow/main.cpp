@@ -55,8 +55,8 @@
 #include <QOpenGLShaderProgram>
 #include <QScreen>
 #include <QtMath>
-
-
+#include <QFile>
+#include <iostream>
 //! [1]
 class TriangleWindow : public OpenGLWindow
 {
@@ -89,37 +89,37 @@ int main(int argc, char **argv)
     window.resize(640, 480);
     window.show();
 
-    window.setAnimating(true);
+    window.setAnimating(false);
 
     return app.exec();
 }
 //! [2]
 
 
-//! [3]
-static const char *vertexShaderSource =
-    "attribute highp vec4 posAttr;\n"
-    "attribute lowp vec4 colAttr;\n"
-    "varying lowp vec4 col;\n"
-    "uniform highp mat4 matrix;\n"
-    "void main() {\n"
-    "   col = colAttr;\n"
-    "   gl_Position = matrix * posAttr;\n"
-    "}\n";
 
-static const char *fragmentShaderSource =
-    "varying lowp vec4 col;\n"
-    "void main() {\n"
-    "   gl_FragColor = col;\n"
-    "}\n";
-//! [3]
 
 //! [4]
 void TriangleWindow::initialize()
 {
     m_program = new QOpenGLShaderProgram(this);
-    m_program->addShaderFromSourceCode(QOpenGLShader::Vertex, vertexShaderSource);
-    m_program->addShaderFromSourceCode(QOpenGLShader::Fragment, fragmentShaderSource);
+    QFile vertexShaderSource(":/shaders/shaders/vertex.vert"),
+          fragmentShaderSource(":/shaders/shaders/fragment.frag");
+    if(!vertexShaderSource.open(QFile::ReadOnly |
+                     QFile::Text))
+       {
+           qDebug() << " Could not open Vertex shader for reading";
+           return;
+       }
+    if(!fragmentShaderSource.open(QFile::ReadOnly |
+                     QFile::Text))
+       {
+           qDebug() << " Could not open Fragment shader for reading";
+           return;
+       }
+    QByteArray vs = vertexShaderSource.readAll(),
+               fs = fragmentShaderSource.readAll();
+    m_program->addShaderFromSourceCode(QOpenGLShader::Vertex, vs);
+    m_program->addShaderFromSourceCode(QOpenGLShader::Fragment, fs);
     m_program->link();
     m_posAttr = m_program->attributeLocation("posAttr");
     Q_ASSERT(m_posAttr != -1);
