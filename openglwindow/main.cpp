@@ -70,7 +70,7 @@ private:
     GLint m_posAttr = 0;
     GLint m_colAttr = 0;
     GLint m_matrixUniform = 0;
-
+    GLint m_coord2d = 0;
     QOpenGLShaderProgram *m_program = nullptr;
     int m_frame = 0;
 };
@@ -121,12 +121,15 @@ void TriangleWindow::initialize()
     m_program->addShaderFromSourceCode(QOpenGLShader::Vertex, vs);
     m_program->addShaderFromSourceCode(QOpenGLShader::Fragment, fs);
     m_program->link();
-    m_posAttr = m_program->attributeLocation("posAttr");
-    Q_ASSERT(m_posAttr != -1);
-    m_colAttr = m_program->attributeLocation("colAttr");
-    Q_ASSERT(m_colAttr != -1);
+    //m_posAttr = m_program->attributeLocation("posAttr");
+    //Q_ASSERT(m_posAttr != -1);
+    //m_colAttr = m_program->attributeLocation("colAttr");
+    //Q_ASSERT(m_colAttr != -1);
     m_matrixUniform = m_program->uniformLocation("matrix");
     Q_ASSERT(m_matrixUniform != -1);
+    m_coord2d = m_program->attributeLocation("coord2d");
+    Q_ASSERT(m_coord2d != -1);
+
 }
 //! [4]
 
@@ -143,7 +146,7 @@ void TriangleWindow::render()
     QMatrix4x4 matrix;
     matrix.perspective(60.0f, 4.0f / 3.0f, 0.1f, 100.0f);
     matrix.translate(0, 0, -2);
-    matrix.rotate(100.0f * m_frame / screen()->refreshRate(), 0, 1, 0);
+   // matrix.rotate(100.0f * m_frame / screen()->refreshRate(), 0, 1, 0);
 
     m_program->setUniformValue(m_matrixUniform, matrix);
 
@@ -159,16 +162,30 @@ void TriangleWindow::render()
         0.0f, 0.0f, 1.0f
     };
 
-    glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, vertices);
-    glVertexAttribPointer(m_colAttr, 3, GL_FLOAT, GL_FALSE, 0, colors);
+    static point graph[2000];
 
-    glEnableVertexAttribArray(m_posAttr);
+    for(int i = 0; i < 2000; i++) {
+      float x = (i - 1000.0) / 100.0;
+      graph[i].x = x;
+      graph[i].y = sin(x * 10.0) / (1.0 + x * x);
+    }
+
+    GLuint vbo;
+    glGenBuffers(1,&vbo);
+    glBindBuffer(GL_ARRAY_BUFFER,vbo);
+
+    glBufferData(GL_ARRAY_BUFFER, sizeof graph, graph, GL_DYNAMIC_DRAW);
+
+    //glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, vertices);
+    //glVertexAttribPointer(m_colAttr, 3, GL_FLOAT, GL_FALSE, 0, colors);
+    glVertexAttribPointer(m_coord2d, 2, GL_FLOAT,GL_FALSE,0,0);
+    glEnableVertexAttribArray(m_coord2d);
     glEnableVertexAttribArray(m_colAttr);
 
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    glDrawArrays(GL_LINE_STRIP, 0, 2000);
+    //glDisableVertexAttribArray(m_colAttr);
+    glDisableVertexAttribArray(m_coord2d);
 
-    glDisableVertexAttribArray(m_colAttr);
-    glDisableVertexAttribArray(m_posAttr);
 
     m_program->release();
 

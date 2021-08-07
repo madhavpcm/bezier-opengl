@@ -56,6 +56,10 @@ class QPainter;
 class QOpenGLContext;
 class QOpenGLPaintDevice;
 QT_END_NAMESPACE
+struct point {
+    GLfloat x;
+    GLfloat y;
+};
 
 //! [1]
 class OpenGLWindow : public QWindow, protected QOpenGLFunctions
