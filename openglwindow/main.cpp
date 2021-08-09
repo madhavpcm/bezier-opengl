@@ -53,6 +53,7 @@
 #include <QGuiApplication>
 #include <QMatrix4x4>
 #include <QOpenGLShaderProgram>
+#include <QOpenGLBuffer>
 #include <QScreen>
 #include <QtMath>
 #include <QFile>
@@ -158,35 +159,55 @@ void TriangleWindow::render()
 
     static const GLfloat colors[] = {
         1.0f, 0.0f, 0.0f,
-        0.0f, 1.0f, 0.0f,
-        0.0f, 0.0f, 1.0f
+        0.0f, 0.4f, 0.0f,
+        0.0f, 0.0f, 0.7f
     };
 
     static point graph[2000];
+
+
+    static point ctrlpoints[] = {
+            { -4.0, -4.0}, { -2.0, 4.0},
+            {2.0, -4.0}, {4.0, 4.0}
+    };
+
+    QOpenGLBuffer bezBuffer((QOpenGLBuffer(QOpenGLBuffer::VertexBuffer)));
+    bool x=bezBuffer.create();
+    if(!x){
+        //
+        qDebug()<<"not ok";
+    }
+    x=bezBuffer.bind();
+    if(!x){
+        //
+        qDebug()<<"not ok";
+    }
 
     for(int i = 0; i < 2000; i++) {
       float x = (i - 1000.0) / 100.0;
       graph[i].x = x;
       graph[i].y = sin(x * 10.0) / (1.0 + x * x);
     }
+    bezBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
+    bezBuffer.allocate(graph,2000 *sizeof (point));
 
-    GLuint vbo;
-    glGenBuffers(1,&vbo);
-    glBindBuffer(GL_ARRAY_BUFFER,vbo);
 
-    glBufferData(GL_ARRAY_BUFFER, sizeof graph, graph, GL_DYNAMIC_DRAW);
+ //   memcpy(&bezBuffer,graph,2000 * sizeof(point));
+    //bezBuffer.write(0,graph,2000);
+    //glBufferData(GL_ARRAY_BUFFER, sizeof graph, NULL, GL_STATIC_DRAW);
 
+    //GLuint vbo=bezBuffer.bufferId();
     //glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, vertices);
     //glVertexAttribPointer(m_colAttr, 3, GL_FLOAT, GL_FALSE, 0, colors);
     glVertexAttribPointer(m_coord2d, 2, GL_FLOAT,GL_FALSE,0,0);
     glEnableVertexAttribArray(m_coord2d);
-    glEnableVertexAttribArray(m_colAttr);
+   //glEnableVertexAttribArray(m_colAttr);
 
     glDrawArrays(GL_LINE_STRIP, 0, 2000);
-    //glDisableVertexAttribArray(m_colAttr);
+   // glDisableVertexAttribArray(m_colAttr);
     glDisableVertexAttribArray(m_coord2d);
-
-
+    //bezBuffer.unmap();
+    bezBuffer.release();
     m_program->release();
 
     ++m_frame;
