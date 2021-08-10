@@ -57,6 +57,7 @@ class QOpenGLContext;
 class QOpenGLPaintDevice;
 QT_END_NAMESPACE
 struct point {
+public:
     GLfloat x;
     GLfloat y;
 };

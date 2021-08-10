@@ -49,7 +49,7 @@
 ****************************************************************************/
 
 #include "openglwindow.h"
-
+#include <qopenglfunctions_4_5_core.h>
 #include <QGuiApplication>
 #include <QMatrix4x4>
 #include <QOpenGLShaderProgram>
@@ -58,6 +58,7 @@
 #include <QtMath>
 #include <QFile>
 #include <iostream>
+#include <glm/vec3.hpp>
 //! [1]
 class TriangleWindow : public OpenGLWindow
 {
@@ -166,9 +167,9 @@ void TriangleWindow::render()
     static point graph[2000];
 
 
-    static point ctrlpoints[] = {
-            { -4.0, -4.0}, { -2.0, 4.0},
-            {2.0, -4.0}, {4.0, 4.0}
+    static glm::vec3 ctrlpoints[] = {
+            { -4.0, -4.0,0.0}, { -2.0, 4.0,0.0},
+            {2.0, -4.0,0.0}, {4.0, 4.0,0.0}
     };
 
     QOpenGLBuffer bezBuffer((QOpenGLBuffer(QOpenGLBuffer::VertexBuffer)));
@@ -207,6 +208,21 @@ void TriangleWindow::render()
    // glDisableVertexAttribArray(m_colAttr);
     glDisableVertexAttribArray(m_coord2d);
     //bezBuffer.unmap();
+    glEnable(GL_MAP1_VERTEX_3);
+    glMap1f(GL_MAP1_VERTEX_3,0.0,1.0, 3,4,&ctrlpoints[0][0]);
+    glColor3f( 1.0, 1.0, 1.0 );
+    glBegin(GL_LINE_STRIP);
+        for(int i=0; i < 1000; i++)
+            glEvalCoord1f((GLfloat) i/ 1000.0);
+    glEnd();
+    glDisable(GL_MAP1_VERTEX_3);
+
+    glPointSize(5.0);
+    glBegin(GL_POINTS);
+         for(glm::vec3 v : ctrlpoints)
+            glVertex3f(v[0],v[1],v[2]);
+    glEnd();
+
     bezBuffer.release();
     m_program->release();
 
