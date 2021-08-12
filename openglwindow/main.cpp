@@ -171,22 +171,11 @@ void TriangleWindow::render()
 
     m_program->setUniformValue(m_matrixUniform, matrix);
 
-    static const GLfloat vertices[] = {
-         0.0f,  0.707f,
-        -0.5f, -0.5f,
-         0.5f, -0.5f
-    };
-
     glm::vec3 color = {1,0,0};
 
     static point graph[2000];
-
-
-
-
     QOpenGLBuffer bezBuffer((QOpenGLBuffer(QOpenGLBuffer::VertexBuffer)));
-    bool x=bezBuffer.create();
-
+    //bool x=bezBuffer.create();
     //x=bezBuffer.bind();
 
 
@@ -197,17 +186,15 @@ void TriangleWindow::render()
     }
     bezBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
     bezBuffer.allocate(graph,2000 *sizeof (point));
-    //GLuint vbo=bezBuffer.bufferId();
-    //glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, vertices);
-    //glVertexAttribPointer(m_colAttr, 3, GL_FLOAT, GL_FALSE, 0, colors);
-    setShaderColor(color);
-    glVertexAttribPointer(m_coord2d, 2, GL_FLOAT,GL_FALSE,0,0);
-    glEnableVertexAttribArray(m_coord2d);
-    glEnableVertexAttribArray(m_colAttr);
 
+    m_program->setAttributeBuffer(m_coord2d,GL_FLOAT,0,2,0);
+    m_program->enableAttributeArray(m_coord2d);
+    m_program->setAttributeBuffer(m_colAttr, GL_FLOAT, 0,3,0);
+    m_program->enableAttributeArray(m_colAttr);
+    m_program->setAttributeValue(m_colAttr,color.x,color.y,color.z);
     glDrawArrays(GL_LINE_STRIP, 0, 2000);
-    glDisableVertexAttribArray(m_colAttr);
-    glDisableVertexAttribArray(m_coord2d);
+    m_program->disableAttributeArray(m_colAttr);
+    m_program->disableAttributeArray(m_coord2d);
     std::vector<glm::vec3> curve;
 
     for(size_t i=0; i< m_firstControlPoints.size() ; i++){
@@ -215,6 +202,10 @@ void TriangleWindow::render()
         curve.push_back(m_secondControlPoints[i]);
 
     }
+    m_program->setAttributeBuffer(m_colAttr, GL_FLOAT, 0,3,0);
+    m_program->enableAttributeArray(m_colAttr);
+    m_program->setAttributeValue(m_colAttr,color.x,color.y,color.z);
+
     glEnable(GL_MAP1_VERTEX_3);
     glMap1f(GL_MAP1_VERTEX_3,0.0,1.0, 3,4,&curve[0][0]);
     //glColor3f( 1.0, 1.0, 0.0 );
@@ -225,21 +216,28 @@ void TriangleWindow::render()
 
     glDisable(GL_MAP1_VERTEX_3);
 
+    color = {0,1,0};
+    m_program->setAttributeValue(m_colAttr,color.x,color.y,color.z);
     glPointSize(5.0);
     glBegin(GL_POINTS);
          for(glm::vec3 v : m_firstControlPoints)
             glVertex3f(v.x,v.y,v.z);
     glEnd();
-    glBegin(GL_POINTS);
-    for(glm::vec3 v : m_secondControlPoints)
-       glVertex3f(v.x,v.y,v.z);
-    glEnd();
+
+    color = {0,0,1};
+    m_program->setAttributeValue(m_colAttr,color.x,color.y,color.z);
     glBegin(GL_POINTS);
     for(glm::vec3 v : m_secondControlPoints)
        glVertex3f(v.x,v.y,v.z);
     glEnd();
 
-    glDisableVertexAttribArray(m_coord2d);
+    color = {1,1,1};
+    m_program->setAttributeValue(m_colAttr,color.x,color.y,color.z);
+    glBegin(GL_POINTS);
+    for(glm::vec3 v : m_knots)
+       glVertex3f(v.x,v.y,v.z);
+    glEnd();
+    m_program->disableAttributeArray(m_colAttr);
     bezBuffer.release();
     m_program->release();
 
