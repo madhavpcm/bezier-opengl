@@ -50,6 +50,7 @@
 
 #include <QWindow>
 #include <QOpenGLFunctions>
+#include <glm/vec3.hpp>
 
 QT_BEGIN_NAMESPACE
 class QPainter;

@@ -58,25 +58,26 @@
 #include <QtMath>
 #include <QFile>
 #include <iostream>
-#include <glm/vec3.hpp>
 //! [1]
 class TriangleWindow : public OpenGLWindow
 {
 public:
     using OpenGLWindow::OpenGLWindow;
+    //explicit TriangleWindow(QWindow *parent = nullptr);
 
     void initialize() override;
     void render() override;
     void getFirstControlPoints();
     void getCurveControlPoints();
     std::vector<glm::vec3> updateControlPoints(std::vector<glm::vec3> & rhs);
+    void setShaderColor(glm::vec3 &color);
 private:
     GLint m_posAttr = 0;
     GLint m_colAttr = 0;
     GLint m_matrixUniform = 0;
     GLint m_coord2d = 0;
 
-    std::vector<glm::vec3> m_knots;
+    std::vector<glm::vec3> m_knots      ;
     std::vector<glm::vec3> m_firstControlPoints;
     std::vector<glm::vec3> m_secondControlPoints;
     QOpenGLShaderProgram *m_program = nullptr;
@@ -104,7 +105,11 @@ int main(int argc, char **argv)
 //! [2]
 
 
+void TriangleWindow::setShaderColor(glm::vec3 &color){
+    Q_ASSERT(m_colAttr != -1);
+    glVertexAttribPointer(m_colAttr, 4, GL_FLOAT,GL_FALSE,0,&color);
 
+}
 
 //! [4]
 void TriangleWindow::initialize()
@@ -131,13 +136,21 @@ void TriangleWindow::initialize()
     m_program->link();
     //m_posAttr = m_program->attributeLocation("posAttr");
     //Q_ASSERT(m_posAttr != -1);
-    //m_colAttr = m_program->attributeLocation("colAttr");
-    //Q_ASSERT(m_colAttr != -1);
+    m_colAttr = m_program->attributeLocation("colAttr");
+    Q_ASSERT(m_colAttr != -1);
     m_matrixUniform = m_program->uniformLocation("matrix");
     Q_ASSERT(m_matrixUniform != -1);
     m_coord2d = m_program->attributeLocation("coord2d");
     Q_ASSERT(m_coord2d != -1);
 
+    static std::vector<glm::vec3> ctrlpoints = {
+            { -4.0, -4.0,0.0}, { -2.0, 4.0,0.0},
+            {2.0, -4.0,0.0}, {4.0, 4.0,0.0}
+    };
+    for(glm::vec3 v : ctrlpoints)
+        m_knots.push_back(v);
+
+    getCurveControlPoints();
 }
 //! [4]
 
@@ -153,7 +166,7 @@ void TriangleWindow::render()
 
     QMatrix4x4 matrix;
     matrix.perspective(60.0f, 4.0f / 3.0f, 0.1f, 100.0f);
-    matrix.translate(0, 0, -10);
+    matrix.translate(0, 0, -50);
    // matrix.rotate(100.0f * m_frame / screen()->refreshRate(), 0, 1, 0);
 
     m_program->setUniformValue(m_matrixUniform, matrix);
@@ -164,24 +177,17 @@ void TriangleWindow::render()
          0.5f, -0.5f
     };
 
-    static const GLfloat colors[] = {
-        1.0f, 0.0f, 0.0f,
-        0.0f, 0.4f, 0.0f,
-        0.0f, 0.0f, 0.7f
-    };
+    glm::vec3 color = {1,0,0};
 
     static point graph[2000];
 
 
-    static std::vector<glm::vec3> ctrlpoints = {
-            { -4.0, -4.0,0.0}, { -2.0, 4.0,0.0},
-            {2.0, -4.0,0.0}, {4.0, 4.0,0.0}
-    };
+
 
     QOpenGLBuffer bezBuffer((QOpenGLBuffer(QOpenGLBuffer::VertexBuffer)));
     bool x=bezBuffer.create();
 
-    x=bezBuffer.bind();
+    //x=bezBuffer.bind();
 
 
     for(int i = 0; i < 2000; i++) {
@@ -191,35 +197,46 @@ void TriangleWindow::render()
     }
     bezBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
     bezBuffer.allocate(graph,2000 *sizeof (point));
-
-
- //   memcpy(&bezBuffer,graph,2000 * sizeof(point));
-    //bezBuffer.write(0,graph,2000);
-    //glBufferData(GL_ARRAY_BUFFER, sizeof graph, NULL, GL_STATIC_DRAW);
-
     //GLuint vbo=bezBuffer.bufferId();
     //glVertexAttribPointer(m_posAttr, 2, GL_FLOAT, GL_FALSE, 0, vertices);
     //glVertexAttribPointer(m_colAttr, 3, GL_FLOAT, GL_FALSE, 0, colors);
+    setShaderColor(color);
     glVertexAttribPointer(m_coord2d, 2, GL_FLOAT,GL_FALSE,0,0);
     glEnableVertexAttribArray(m_coord2d);
-   //glEnableVertexAttribArray(m_colAttr);
+    glEnableVertexAttribArray(m_colAttr);
 
     glDrawArrays(GL_LINE_STRIP, 0, 2000);
-   // glDisableVertexAttribArray(m_colAttr);
-    //bezBuffer.unmap();
+    glDisableVertexAttribArray(m_colAttr);
+    glDisableVertexAttribArray(m_coord2d);
+    std::vector<glm::vec3> curve;
+
+    for(size_t i=0; i< m_firstControlPoints.size() ; i++){
+        curve.push_back(m_firstControlPoints[i]);
+        curve.push_back(m_secondControlPoints[i]);
+
+    }
     glEnable(GL_MAP1_VERTEX_3);
-    glMap1f(GL_MAP1_VERTEX_3,0.0,1.0, 3,4,&ctrlpoints[0][0]);
-    glColor3f( 1.0, 1.0, 0.0 );
+    glMap1f(GL_MAP1_VERTEX_3,0.0,1.0, 3,4,&curve[0][0]);
+    //glColor3f( 1.0, 1.0, 0.0 );
     glBegin(GL_LINE_STRIP);
-        for(int i=0; i < 1000; i++)
-            glEvalCoord1f((GLfloat) i/ 1000.0);
+        for(int i=0; i < 10000; i++)
+            glEvalCoord1f((GLfloat) i/ 10000.0);
     glEnd();
+
     glDisable(GL_MAP1_VERTEX_3);
 
     glPointSize(5.0);
     glBegin(GL_POINTS);
-         for(glm::vec3 v : ctrlpoints)
+         for(glm::vec3 v : m_firstControlPoints)
             glVertex3f(v.x,v.y,v.z);
+    glEnd();
+    glBegin(GL_POINTS);
+    for(glm::vec3 v : m_secondControlPoints)
+       glVertex3f(v.x,v.y,v.z);
+    glEnd();
+    glBegin(GL_POINTS);
+    for(glm::vec3 v : m_secondControlPoints)
+       glVertex3f(v.x,v.y,v.z);
     glEnd();
 
     glDisableVertexAttribArray(m_coord2d);
