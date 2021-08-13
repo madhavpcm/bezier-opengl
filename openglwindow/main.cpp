@@ -186,7 +186,6 @@ void TriangleWindow::render()
     }
     bezBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
     bezBuffer.allocate(graph,2000 *sizeof (point));
-
     m_program->setAttributeBuffer(m_coord2d,GL_FLOAT,0,2,0);
     m_program->enableAttributeArray(m_coord2d);
     m_program->setAttributeBuffer(m_colAttr, GL_FLOAT, 0,3,0);
@@ -195,27 +194,26 @@ void TriangleWindow::render()
     glDrawArrays(GL_LINE_STRIP, 0, 2000);
     m_program->disableAttributeArray(m_colAttr);
     m_program->disableAttributeArray(m_coord2d);
-    std::vector<glm::vec3> curve;
+    std::vector<glm::vec3> curve(4);
 
-    for(size_t i=0; i< m_firstControlPoints.size() ; i++){
-        curve.push_back(m_firstControlPoints[i]);
-        curve.push_back(m_secondControlPoints[i]);
-
-    }
     m_program->setAttributeBuffer(m_colAttr, GL_FLOAT, 0,3,0);
     m_program->enableAttributeArray(m_colAttr);
     m_program->setAttributeValue(m_colAttr,color.x,color.y,color.z);
 
-    glEnable(GL_MAP1_VERTEX_3);
-    glMap1f(GL_MAP1_VERTEX_3,0.0,1.0, 3,4,&curve[0][0]);
-    //glColor3f( 1.0, 1.0, 0.0 );
-    glBegin(GL_LINE_STRIP);
-        for(int i=0; i < 10000; i++)
-            glEvalCoord1f((GLfloat) i/ 10000.0);
-    glEnd();
-
-    glDisable(GL_MAP1_VERTEX_3);
-
+    for(size_t i=0; i< m_firstControlPoints.size() ; i++){
+        curve[0]=m_knots[i];
+        curve[1]=(m_firstControlPoints[i]);
+        curve[2]=(m_secondControlPoints[i]);
+        curve[3]=(m_knots[i+1]);
+        glEnable(GL_MAP1_VERTEX_3);
+        glMap1f(GL_MAP1_VERTEX_3,0.0,1.0, 3,4,&curve[0][0]);
+      //glColor3f( 1.0, 1.0, 0.0 );
+        glBegin(GL_LINE_STRIP);
+            for(int i=0; i < 10000; i++)
+                glEvalCoord1f((GLfloat) i/ 10000.0);
+        glEnd();
+        glDisable(GL_MAP1_VERTEX_3);
+    }
     color = {0,1,0};
     m_program->setAttributeValue(m_colAttr,color.x,color.y,color.z);
     glPointSize(5.0);
@@ -234,8 +232,8 @@ void TriangleWindow::render()
     color = {1,1,1};
     m_program->setAttributeValue(m_colAttr,color.x,color.y,color.z);
     glBegin(GL_POINTS);
-    for(glm::vec3 v : m_knots)
-       glVertex3f(v.x,v.y,v.z);
+        for(glm::vec3 v : m_knots)
+            glVertex3f(v.x,v.y,v.z);
     glEnd();
     m_program->disableAttributeArray(m_colAttr);
     bezBuffer.release();
