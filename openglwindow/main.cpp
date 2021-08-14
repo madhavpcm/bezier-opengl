@@ -67,6 +67,7 @@ public:
 
     void initialize() override;
     void render() override;
+    void mousePressEvent(Q);
     void getFirstControlPoints();
     void getCurveControlPoints();
     std::vector<glm::vec3> updateControlPoints(std::vector<glm::vec3> & rhs);
