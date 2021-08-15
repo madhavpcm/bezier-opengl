@@ -58,6 +58,11 @@
 #include <QtMath>
 #include <QFile>
 #include <iostream>
+#include <QMouseEvent>
+#include <Qt>
+#include <QDebug>
+#include <glm/vec2.hpp>
+#include <glm/glm.hpp>
 //! [1]
 class TriangleWindow : public OpenGLWindow
 {
@@ -67,16 +72,19 @@ public:
 
     void initialize() override;
     void render() override;
-    void mousePressEvent(Q);
     void getFirstControlPoints();
     void getCurveControlPoints();
+    uint32_t closestKnot(glm::vec2 &v);
     std::vector<glm::vec3> updateControlPoints(std::vector<glm::vec3> & rhs);
     void setShaderColor(glm::vec3 &color);
+    void win2glcoord(glm::vec2 & v);
 private:
     GLint m_posAttr = 0;
     GLint m_colAttr = 0;
     GLint m_matrixUniform = 0;
     GLint m_coord2d = 0;
+    void mousePressEvent(QMouseEvent *e) override;
+    //void mouseDoubleClickEvent(QMouseEvent *e) override;
 
     std::vector<glm::vec3> m_knots      ;
     std::vector<glm::vec3> m_firstControlPoints;
@@ -91,6 +99,7 @@ int main(int argc, char **argv)
 {
     QGuiApplication app(argc, argv);
 
+    //std::cout<<"sd;lfkajsf";
     QSurfaceFormat format;
     format.setSamples(16);
 
@@ -106,12 +115,37 @@ int main(int argc, char **argv)
 //! [2]
 
 
+u_int32_t TriangleWindow::closestKnot(glm::vec2 &v){
+    GLfloat min= float_t
+   for(size_t i =0 ; i< m_knots.size(); i++){
+
+
+   }
+}
 void TriangleWindow::setShaderColor(glm::vec3 &color){
     Q_ASSERT(m_colAttr != -1);
     glVertexAttribPointer(m_colAttr, 4, GL_FLOAT,GL_FALSE,0,&color);
 
 }
+void TriangleWindow::win2glcoord(glm::vec2 & v){
 
+        v.x -= this->width() / 2;
+        v.y -= this->height() / 2;
+        v.x /= this->width() / 2;
+        v.y /= this->height() / 2;
+}
+void TriangleWindow::mousePressEvent(QMouseEvent *e){
+    if(e->button() == Qt::LeftButton){
+        QPoint mousecoords=QCursor::pos();
+        glm::vec2 nmc={mousecoords.x() ,mousecoords.y()};
+        win2glcoord(nmc);
+        uint32_t cindex = closestKnot(nmc);
+
+        qDebug() << nmc.x << "::" << nmc.y <<" \n";
+        std::cout << nmc.x << "::" << nmc.y << " \n";
+    }
+
+}
 //! [4]
 void TriangleWindow::initialize()
 {
@@ -143,6 +177,7 @@ void TriangleWindow::initialize()
     Q_ASSERT(m_matrixUniform != -1);
     m_coord2d = m_program->attributeLocation("coord2d");
     Q_ASSERT(m_coord2d != -1);
+    std::cout << "rendering\n";
 
     static std::vector<glm::vec3> ctrlpoints = {
             { -4.0, -4.0,0.0}, { -2.0, 4.0,0.0},
@@ -160,7 +195,6 @@ void TriangleWindow::render()
 {
     const qreal retinaScale = devicePixelRatio();
     glViewport(0, 0, width() * retinaScale, height() * retinaScale);
-
     glClear(GL_COLOR_BUFFER_BIT);
 
     m_program->bind();

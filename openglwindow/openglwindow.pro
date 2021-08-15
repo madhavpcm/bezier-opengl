@@ -1,4 +1,5 @@
 include(openglwindow.pri)
+CONFIG += console
 
 SOURCES += \
     main.cpp
