@@ -74,10 +74,10 @@ public:
     void render() override;
     void getFirstControlPoints();
     void getCurveControlPoints();
-    uint32_t closestKnot(glm::vec2 &v);
+    int closestKnot(glm::vec2 &v);
     std::vector<glm::vec3> updateControlPoints(std::vector<glm::vec3> & rhs);
-    void setShaderColor(glm::vec3 &color);
     void win2glcoord(glm::vec2 & v);
+    void dragMouse(int indx,glm::vec2 &nmc);
 private:
     GLint m_posAttr = 0;
     GLint m_colAttr = 0;
@@ -114,35 +114,48 @@ int main(int argc, char **argv)
 }
 //! [2]
 
+void TriangleWindow::dragMouse(int indx, glm::vec2 &nmc){
+        m_knots[indx] = glm::vec3(nmc, 0);
 
-u_int32_t TriangleWindow::closestKnot(glm::vec2 &v){
-    GLfloat min= float_t
+}
+
+int TriangleWindow::closestKnot(glm::vec2 &v){
+    GLfloat min= 3.402823466E38;
+    uint32_t indx=-1;
    for(size_t i =0 ; i< m_knots.size(); i++){
-
-
+        GLfloat x=glm::distance(m_knots[i],glm::vec3(v,0));
+        if(x < min){
+            min=x;
+            indx=i;
+        }
    }
+   if(min >= 1.0f)
+   return indx;
+   else
+   return -1;
 }
-void TriangleWindow::setShaderColor(glm::vec3 &color){
-    Q_ASSERT(m_colAttr != -1);
-    glVertexAttribPointer(m_colAttr, 4, GL_FLOAT,GL_FALSE,0,&color);
 
-}
 void TriangleWindow::win2glcoord(glm::vec2 & v){
 
-        v.x -= this->width() / 2;
-        v.y -= this->height() / 2;
-        v.x /= this->width() / 2;
-        v.y /= this->height() / 2;
+        v.x =( v.x / width()) * 20;
+        v.y =( v.y / height())* 20;
+        v.x -= 10;
+        v.y -= 10;
+        v.y *= -1;
 }
 void TriangleWindow::mousePressEvent(QMouseEvent *e){
     if(e->button() == Qt::LeftButton){
         QPoint mousecoords=QCursor::pos();
         glm::vec2 nmc={mousecoords.x() ,mousecoords.y()};
         win2glcoord(nmc);
-        uint32_t cindex = closestKnot(nmc);
+        int cindex = closestKnot(nmc);
+        if(cindex < 0) return;
 
-        qDebug() << nmc.x << "::" << nmc.y <<" \n";
-        std::cout << nmc.x << "::" << nmc.y << " \n";
+
+        std::cout << nmc.x << " :: " << nmc.y << " \n";
+        dragMouse(cindex,nmc);
+        getCurveControlPoints();
+        renderNow();
     }
 
 }
@@ -177,7 +190,6 @@ void TriangleWindow::initialize()
     Q_ASSERT(m_matrixUniform != -1);
     m_coord2d = m_program->attributeLocation("coord2d");
     Q_ASSERT(m_coord2d != -1);
-    std::cout << "rendering\n";
 
     static std::vector<glm::vec3> ctrlpoints = {
             { -4.0, -4.0,0.0}, { -2.0, 4.0,0.0},
@@ -197,13 +209,14 @@ void TriangleWindow::render()
     glViewport(0, 0, width() * retinaScale, height() * retinaScale);
     glClear(GL_COLOR_BUFFER_BIT);
 
+    std::cout << "rendering\n";
     m_program->bind();
 
     QMatrix4x4 matrix;
-    matrix.perspective(60.0f, 4.0f / 3.0f, 0.1f, 100.0f);
-    matrix.translate(0, 0, -50);
+    matrix.ortho(-10.0,10,-10,10,0.1f,100.0f);
+    //matrix.perspective(60.0f, 4.0f / 3.0f, 0.1f, 100.0f);
+    matrix.translate(0, 0, -100);
    // matrix.rotate(100.0f * m_frame / screen()->refreshRate(), 0, 1, 0);
-
     m_program->setUniformValue(m_matrixUniform, matrix);
 
     glm::vec3 color = {1,0,0};
@@ -285,12 +298,12 @@ void TriangleWindow::getCurveControlPoints(){
         qDebug() << "knots needs at least 2 points"; return;
     }
     if(m_knots.size() == 2){
-        m_firstControlPoints.emplace_back(glm::vec3{
+        m_firstControlPoints[0]=(glm::vec3{
                                               (2 *m_knots[0].x + m_knots[1].x )/3,
                                               (2 *m_knots[0].y + m_knots[1].y )/3,
                                                0.0
                                           });
-        m_secondControlPoints.emplace_back(glm::vec3{
+        m_secondControlPoints[1]=(glm::vec3{
                                               (2*m_firstControlPoints[0].x - m_knots[0].x),
                                                (2*m_firstControlPoints[0].y - m_knots[0].y),
                                                0.0
@@ -299,8 +312,10 @@ void TriangleWindow::getCurveControlPoints(){
     }
     size_t n=m_knots.size()-1;
     std::vector<glm::vec3> rhs(m_knots.size()-1);
-
-            // Set right hand side X values
+    if(m_firstControlPoints.size() != n)
+           m_firstControlPoints = std::vector<glm::vec3> (n);
+    if(m_secondControlPoints.size() != n)
+            m_secondControlPoints = std::vector<glm::vec3> (n);// Set right hand side X values
     for (size_t i = 1; i <n-1; ++i){
         rhs[i].x = 4 * m_knots[i].x + 2 * m_knots[i + 1].x;
         rhs[i].y = 4 * m_knots[i].y + 2 * m_knots[i + 1].y;
@@ -323,14 +338,14 @@ void TriangleWindow::getCurveControlPoints(){
     for (size_t i = 0; i < n; ++i)
     {
         // First control point
-        m_firstControlPoints.emplace_back(glm::vec3(ctrl[i].x, ctrl[i].y,0));
+        m_firstControlPoints[i]=(glm::vec3(ctrl[i].x, ctrl[i].y,0));
         // Second control point
         if (i < n - 1)
-            m_secondControlPoints.emplace_back(glm::vec3(2 * m_knots[i + 1].x - ctrl[i + 1].x,
+            m_secondControlPoints[i]=(glm::vec3(2 * m_knots[i + 1].x - ctrl[i + 1].x,
                                                          2 *m_knots[i + 1].y - ctrl[i + 1].y,
                                                          0));
         else
-            m_secondControlPoints.emplace_back(glm::vec3((m_knots[n].x + ctrl[n - 1].x) / 2,
+            m_secondControlPoints[i]=(glm::vec3((m_knots[n].x + ctrl[n - 1].x) / 2,
                                                          (m_knots[n].y + ctrl[n - 1].y) / 2,
                                                           0));
     }
