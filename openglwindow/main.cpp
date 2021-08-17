@@ -62,6 +62,7 @@
 #include <Qt>
 #include <QDebug>
 #include <glm/vec2.hpp>
+#include <atomic>
 #include <glm/glm.hpp>
 //! [1]
 class TriangleWindow : public OpenGLWindow
@@ -84,6 +85,9 @@ private:
     GLint m_matrixUniform = 0;
     GLint m_coord2d = 0;
     void mousePressEvent(QMouseEvent *e) override;
+    //void mouseReleaseEvent(QMouseEvent *e)	override;
+
+    std::atomic_bool m_isknotselected;
     //void mouseDoubleClickEvent(QMouseEvent *e) override;
 
     std::vector<glm::vec3> m_knots      ;
@@ -129,10 +133,10 @@ int TriangleWindow::closestKnot(glm::vec2 &v){
             indx=i;
         }
    }
-   if(min >= 1.0f)
-   return indx;
+   if(min <= 1.0f)
+        return indx;
    else
-   return -1;
+        return -1;
 }
 
 void TriangleWindow::win2glcoord(glm::vec2 & v){
@@ -144,14 +148,18 @@ void TriangleWindow::win2glcoord(glm::vec2 & v){
         v.y *= -1;
 }
 void TriangleWindow::mousePressEvent(QMouseEvent *e){
-    if(e->button() == Qt::LeftButton){
-        QPoint mousecoords=QCursor::pos();
+   if(e->button() == Qt::LeftButton){
+        m_isknotselected = true;
+
+    }
+   while( m_isknotselected  ){
+        QPoint mousecoords=mapFromGlobal(QCursor::pos());
         glm::vec2 nmc={mousecoords.x() ,mousecoords.y()};
         win2glcoord(nmc);
         int cindex = closestKnot(nmc);
-        if(cindex < 0) return;
 
-
+        if(cindex < 0 )
+            return;
         std::cout << nmc.x << " :: " << nmc.y << " \n";
         dragMouse(cindex,nmc);
         getCurveControlPoints();
@@ -159,9 +167,11 @@ void TriangleWindow::mousePressEvent(QMouseEvent *e){
     }
 
 }
+
 //! [4]
 void TriangleWindow::initialize()
 {
+    m_isknotselected = false;
     m_program = new QOpenGLShaderProgram(this);
     QFile vertexShaderSource(":/shaders/shaders/vertex.vert"),
           fragmentShaderSource(":/shaders/shaders/fragment.frag");
