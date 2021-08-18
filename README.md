@@ -1,0 +1,1 @@
+![](bezsplines.gif)

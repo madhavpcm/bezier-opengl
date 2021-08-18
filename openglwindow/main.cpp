@@ -85,7 +85,8 @@ private:
     GLint m_matrixUniform = 0;
     GLint m_coord2d = 0;
     void mousePressEvent(QMouseEvent *e) override;
-    //void mouseReleaseEvent(QMouseEvent *e)	override;
+    void mouseReleaseEvent(QMouseEvent *e)	override;
+    void mouseMoveEvent(QMouseEvent *e) override;
 
     std::atomic_bool m_isknotselected;
     //void mouseDoubleClickEvent(QMouseEvent *e) override;
@@ -120,6 +121,8 @@ int main(int argc, char **argv)
 
 void TriangleWindow::dragMouse(int indx, glm::vec2 &nmc){
         m_knots[indx] = glm::vec3(nmc, 0);
+        std::sort(m_knots.begin(), m_knots.end(), [] (const glm::vec3& a,const glm::vec3& b)
+        { return a.x < b.x; });
 
 }
 
@@ -148,11 +151,24 @@ void TriangleWindow::win2glcoord(glm::vec2 & v){
         v.y *= -1;
 }
 void TriangleWindow::mousePressEvent(QMouseEvent *e){
-   if(e->button() == Qt::LeftButton){
+   if(e->button() == Qt::LeftButton && !m_isknotselected){
         m_isknotselected = true;
 
     }
-   while( m_isknotselected  ){
+   else{
+       m_isknotselected = false;
+   }
+
+}
+
+void TriangleWindow::mouseReleaseEvent(QMouseEvent *e){
+    if(e->button() == Qt::LeftButton){
+       m_isknotselected = false;
+    }
+}
+void TriangleWindow::mouseMoveEvent(QMouseEvent *e){
+
+   if( m_isknotselected  ){
         QPoint mousecoords=mapFromGlobal(QCursor::pos());
         glm::vec2 nmc={mousecoords.x() ,mousecoords.y()};
         win2glcoord(nmc);
@@ -160,14 +176,12 @@ void TriangleWindow::mousePressEvent(QMouseEvent *e){
 
         if(cindex < 0 )
             return;
-        std::cout << nmc.x << " :: " << nmc.y << " \n";
+        //std::cout << nmc.x << " :: " << nmc.y << " \n";
         dragMouse(cindex,nmc);
         getCurveControlPoints();
         renderNow();
     }
-
 }
-
 //! [4]
 void TriangleWindow::initialize()
 {
@@ -219,7 +233,7 @@ void TriangleWindow::render()
     glViewport(0, 0, width() * retinaScale, height() * retinaScale);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    std::cout << "rendering\n";
+    //std::cout << "rendering\n";
     m_program->bind();
 
     QMatrix4x4 matrix;
