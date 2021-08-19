@@ -143,7 +143,7 @@ int TriangleWindow::closestKnot(glm::vec2 &v){
 }
 
 void TriangleWindow::win2glcoord(glm::vec2 & v){
-
+//translate according to pre defined size, TODO make this better
         v.x =( v.x / width()) * 20;
         v.y =( v.y / height())* 20;
         v.x -= 10;
@@ -151,6 +151,24 @@ void TriangleWindow::win2glcoord(glm::vec2 & v){
         v.y *= -1;
 }
 void TriangleWindow::mousePressEvent(QMouseEvent *e){
+    if(e->button() == Qt::RightButton){
+        QPoint mousecoords=mapFromGlobal(QCursor::pos());
+        glm::vec2 nmc={mousecoords.x() ,mousecoords.y()};
+        win2glcoord(nmc);
+        int cindex = closestKnot(nmc);
+
+        if(cindex <0){
+            return;
+        }
+        else{
+            if(m_knots.size() >2){
+                m_knots.erase(m_knots.begin() + cindex);
+                getCurveControlPoints();
+                renderNow();
+
+            }
+        }
+    }
    if(e->button() == Qt::LeftButton && !m_isknotselected){
         m_isknotselected = true;
 
@@ -211,8 +229,12 @@ void TriangleWindow::initialize()
     m_program->addShaderFromSourceCode(QOpenGLShader::Vertex, vs);
     m_program->addShaderFromSourceCode(QOpenGLShader::Fragment, fs);
     m_program->link();
+
+    //checking uniforms, primitive check as things are fairly simple
+
     //m_posAttr = m_program->attributeLocation("posAttr");
     //Q_ASSERT(m_posAttr != -1);
+
     m_colAttr = m_program->attributeLocation("colAttr");
     Q_ASSERT(m_colAttr != -1);
     m_matrixUniform = m_program->uniformLocation("matrix");
@@ -250,27 +272,6 @@ void TriangleWindow::render()
 
     glm::vec3 color = {1,0,0};
 
-    static point graph[2000];
-    QOpenGLBuffer bezBuffer((QOpenGLBuffer(QOpenGLBuffer::VertexBuffer)));
-    //bool x=bezBuffer.create();
-    //x=bezBuffer.bind();
-
-
-    for(int i = 0; i < 2000; i++) {
-      float x = (i - 1000.0) / 100.0;
-      graph[i].x = x;
-      graph[i].y = sin(x * 10.0) / (1.0 + x * x);
-    }
-    bezBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
-    bezBuffer.allocate(graph,2000 *sizeof (point));
-    m_program->setAttributeBuffer(m_coord2d,GL_FLOAT,0,2,0);
-    m_program->enableAttributeArray(m_coord2d);
-    m_program->setAttributeBuffer(m_colAttr, GL_FLOAT, 0,3,0);
-    m_program->enableAttributeArray(m_colAttr);
-    m_program->setAttributeValue(m_colAttr,color.x,color.y,color.z);
-    glDrawArrays(GL_LINE_STRIP, 0, 2000);
-    m_program->disableAttributeArray(m_colAttr);
-    m_program->disableAttributeArray(m_coord2d);
     std::vector<glm::vec3> curve(4);
 
     m_program->setAttributeBuffer(m_colAttr, GL_FLOAT, 0,3,0);
@@ -290,7 +291,7 @@ void TriangleWindow::render()
                 glEvalCoord1f((GLfloat) i/ 10000.0);
         glEnd();
         glDisable(GL_MAP1_VERTEX_3);
-    }
+    }//Control Points 1 in green
     color = {0,1,0};
     m_program->setAttributeValue(m_colAttr,color.x,color.y,color.z);
     glPointSize(5.0);
@@ -298,14 +299,14 @@ void TriangleWindow::render()
          for(glm::vec3 v : m_firstControlPoints)
             glVertex3f(v.x,v.y,v.z);
     glEnd();
-
+    //Control Points 2 in blue
     color = {0,0,1};
     m_program->setAttributeValue(m_colAttr,color.x,color.y,color.z);
     glBegin(GL_POINTS);
     for(glm::vec3 v : m_secondControlPoints)
        glVertex3f(v.x,v.y,v.z);
     glEnd();
-
+    //Knots or the joining points in white
     color = {1,1,1};
     m_program->setAttributeValue(m_colAttr,color.x,color.y,color.z);
     glBegin(GL_POINTS);
@@ -313,7 +314,7 @@ void TriangleWindow::render()
             glVertex3f(v.x,v.y,v.z);
     glEnd();
     m_program->disableAttributeArray(m_colAttr);
-    bezBuffer.release();
+    //bezBuffer.release();
     m_program->release();
 
     ++m_frame;
@@ -327,12 +328,15 @@ void TriangleWindow::getCurveControlPoints(){
         qDebug() << "knots needs at least 2 points"; return;
     }
     if(m_knots.size() == 2){
+        m_firstControlPoints = std::vector<glm::vec3>(1);
+        m_secondControlPoints = std::vector<glm::vec3>(1);
+
         m_firstControlPoints[0]=(glm::vec3{
                                               (2 *m_knots[0].x + m_knots[1].x )/3,
                                               (2 *m_knots[0].y + m_knots[1].y )/3,
                                                0.0
                                           });
-        m_secondControlPoints[1]=(glm::vec3{
+        m_secondControlPoints[0]=(glm::vec3{
                                               (2*m_firstControlPoints[0].x - m_knots[0].x),
                                                (2*m_firstControlPoints[0].y - m_knots[0].y),
                                                0.0
