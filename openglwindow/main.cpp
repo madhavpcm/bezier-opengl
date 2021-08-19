@@ -136,7 +136,7 @@ int TriangleWindow::closestKnot(glm::vec2 &v){
             indx=i;
         }
    }
-   if(min <= 1.0f)
+   if(min <= 0.6f)
         return indx;
    else
         return -1;
@@ -174,12 +174,17 @@ void TriangleWindow::mouseMoveEvent(QMouseEvent *e){
         win2glcoord(nmc);
         int cindex = closestKnot(nmc);
 
-        if(cindex < 0 )
-            return;
+        if(cindex < 0 ){
+            m_knots.push_back(glm::vec3(nmc.x,nmc.y,0));//add new control point if no close one exists
+            getCurveControlPoints();
+            renderNow();
+
+        }else{
+            dragMouse(cindex,nmc);
+            getCurveControlPoints();
+            renderNow();
+        }
         //std::cout << nmc.x << " :: " << nmc.y << " \n";
-        dragMouse(cindex,nmc);
-        getCurveControlPoints();
-        renderNow();
     }
 }
 //! [4]
