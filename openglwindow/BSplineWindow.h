@@ -39,6 +39,7 @@ private:
     void mousePressEvent(QMouseEvent *e) override;
     void mouseReleaseEvent(QMouseEvent *e)	override;
     void mouseMoveEvent(QMouseEvent *e) override;
+    void mouseDoubleClickEvent(QMouseEvent *e) override;
 
     std::atomic_bool m_isknotselected;
     //void mouseDoubleClickEvent(QMouseEvent *e) override;

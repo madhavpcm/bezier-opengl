@@ -44,8 +44,6 @@ void BSplineWindow::mouseMoveEvent(QMouseEvent *e){
         win2glcoord(nmc);
         std::pair<int,int> cindex  = closestKnot(nmc);
 
-        if(cindex.second < 0)
-            return;
         if(cindex.second == 0 ){
             dragMouse(cindex.first, nmc);
             //getCurveControlPoints();
@@ -64,6 +62,13 @@ void BSplineWindow::mouseMoveEvent(QMouseEvent *e){
         }
 
         //std::cout << nmc.x << " :: " << nmc.y << " \n";
+    }
+}
+
+void BSplineWindow::mouseDoubleClickEvent(QMouseEvent *e){
+    if( e->button() == Qt::LeftButton)    {
+        getCurveControlPoints();
+        renderNow();
     }
 }
 
