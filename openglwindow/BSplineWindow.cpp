@@ -6,14 +6,14 @@ void BSplineWindow::mousePressEvent(QMouseEvent *e){
         QPoint mousecoords=mapFromGlobal(QCursor::pos());
         glm::vec2 nmc={mousecoords.x() ,mousecoords.y()};
         win2glcoord(nmc);
-        int cindex = closestKnot(nmc);
+        std::pair<int,int> cindex = closestKnot(nmc);
 
-        if(cindex <0){
+        if(cindex.first !=0){
             return;
         }
         else{
             if(m_knots.size() >2){
-                m_knots.erase(m_knots.begin() + cindex);
+                m_knots.erase(m_knots.begin() + cindex.second);
                 getCurveControlPoints();
                 renderNow();
 
@@ -42,18 +42,27 @@ void BSplineWindow::mouseMoveEvent(QMouseEvent *e){
         QPoint mousecoords=mapFromGlobal(QCursor::pos());
         glm::vec2 nmc={mousecoords.x() ,mousecoords.y()};
         win2glcoord(nmc);
-        int cindex = closestKnot(nmc);
+        std::pair<int,int> cindex  = closestKnot(nmc);
 
-        if(cindex < 0 ){
+        if(cindex.second < 0)
+            return;
+        if(cindex.second == 0 ){
+            dragMouse(cindex.first, nmc);
+            //getCurveControlPoints();
+            renderNow();
+        }else if (cindex.second== 1){
+            m_firstControlPoints[cindex.first] = glm::vec3(nmc,0);
+            renderNow();
+        }else if (cindex.second== 2) {
+            m_secondControlPoints[cindex.first] = glm::vec3(nmc,0);
+            renderNow();
+        }
+        else if (cindex.first < 0){
             m_knots.push_back(glm::vec3(nmc.x,nmc.y,0));//add new control point if no close one exists
             getCurveControlPoints();
             renderNow();
-
-        }else{
-            dragMouse(cindex,nmc);
-            getCurveControlPoints();
-            renderNow();
         }
+
         //std::cout << nmc.x << " :: " << nmc.y << " \n";
     }
 }
@@ -177,20 +186,38 @@ void BSplineWindow::dragMouse(int indx, glm::vec2 &nmc){
 
 }
 
-int BSplineWindow::closestKnot(glm::vec2 &v){
+std::pair<int,int> BSplineWindow::closestKnot(glm::vec2 &v){
     GLfloat min= 3.402823466E38;
     uint32_t indx=-1;
+    int id=-1;
    for(size_t i =0 ; i< m_knots.size(); i++){
         GLfloat x=glm::distance(m_knots[i],glm::vec3(v,0));
         if(x < min){
             min=x;
             indx=i;
+            id=0;
         }
    }
+   for(size_t i=0; i < m_firstControlPoints.size() ;i++){
+      GLfloat x = glm::distance(m_firstControlPoints[i],glm::vec3(v,0));
+      if ( x < min){
+          min=x;
+          indx=i;
+          id=1;
+      }
+   }
+   for(size_t i=0; i < m_secondControlPoints.size() ;i++){
+      GLfloat x = glm::distance(m_secondControlPoints[i],glm::vec3(v,0));
+      if ( x < min){
+          min=x;
+          indx=i;
+          id=2;
+      }
+   }
    if(min <= 0.6f)
-        return indx;
+       return {indx,id};
    else
-        return -1;
+       return {-1,-1};
 }
 
 void BSplineWindow::win2glcoord(glm::vec2 & v){

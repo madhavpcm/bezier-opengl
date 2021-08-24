@@ -27,7 +27,7 @@ public:
     void render() override;
     void getFirstControlPoints();
     void getCurveControlPoints();
-    int closestKnot(glm::vec2 &v);
+    std::pair<int,int> closestKnot(glm::vec2 &v);
     std::vector<glm::vec3> updateControlPoints(std::vector<glm::vec3> & rhs);
     void win2glcoord(glm::vec2 & v);
     void dragMouse(int indx,glm::vec2 &nmc);
