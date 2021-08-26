@@ -5,6 +5,7 @@ void BSplineWindow::mousePressEvent(QMouseEvent *e){
     if(e->button() == Qt::RightButton){
         QPoint mousecoords=mapFromGlobal(QCursor::pos());
         glm::vec2 nmc={mousecoords.x() ,mousecoords.y()};
+        glm::vec3 y(e->pos().x(),e->pos().y(),0);
         win2glcoord(nmc);
         std::pair<int,int> cindex = closestKnot(nmc);
 
