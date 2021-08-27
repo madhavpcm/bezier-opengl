@@ -38,6 +38,7 @@ private:
     GLint m_colAttr = 0;
     GLint m_matrixUniform = 0;
     GLint m_coord2d = 0;
+
     void mousePressEvent(QMouseEvent *e) override;
     void mouseReleaseEvent(QMouseEvent *e)	override;
     void mouseMoveEvent(QMouseEvent *e) override;
@@ -49,6 +50,8 @@ private:
     std::vector<glm::vec3> m_knots;
     std::vector<glm::vec3> m_firstControlPoints;
     std::vector<glm::vec3> m_secondControlPoints;
+    std::vector<std::vector<glm::vec3>> m_feedback;//all coords after rendering
+
     QOpenGLShaderProgram *m_program = nullptr;
     int m_frame = 0;
 };

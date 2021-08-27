@@ -7,12 +7,12 @@ void BSplineWindow::mousePressEvent(QMouseEvent *e){
         win2glcoord(nmc);
         std::pair<int,int> cindex = closestKnot(nmc);
 
-        if(cindex.first !=0){
+        if(cindex.second !=0){
             return;
         }
         else{
             if(m_knots.size() >2){
-                m_knots.erase(m_knots.begin() + cindex.second);
+                m_knots.erase(m_knots.begin() + cindex.first);
                 getCurveControlPoints();
                 renderNow();
 
@@ -121,7 +121,9 @@ void BSplineWindow::render()
     const qreal retinaScale = devicePixelRatio();
     glViewport(0, 0, width() * retinaScale, height() * retinaScale);
     glClear(GL_COLOR_BUFFER_BIT);
-
+    m_feedback.clear();
+    m_feedback = std::vector<std::vector<glm::vec3>>(m_firstControlPoints.size(),
+                                                     std::vector<glm::vec3>(1000,glm::vec3(0,0,0)));
     //std::cout << "rendering\n";
     m_program->bind();
 
@@ -141,18 +143,17 @@ void BSplineWindow::render()
     m_program->setAttributeValue(m_colAttr,color.x,color.y,color.z);
 
     for(size_t i=0; i< m_firstControlPoints.size() ; i++){
-        std::vector<glm::vec3> feedback(1000);
         curve[0]=m_knots[i];
         curve[1]=(m_firstControlPoints[i]);
         curve[2]=(m_secondControlPoints[i]);
         curve[3]=(m_knots[i+1]);
         glColor3f( 1.0, 1.0, 0.0 );
         glBegin(GL_LINE_STRIP);
-            for(int i=0; i < 1000; i++){
-                feedback[i] = glm::vec3(getBezier(i/1000.0,curve[0].x,curve[1].x,curve[2].x,curve[3].x),
-                                        getBezier(i/1000.0,curve[0].y,curve[1].y,curve[2].y,curve[3].y),
+            for(int j=0; j < 1000; j++){
+                m_feedback[i][j] = glm::vec3(getBezier(j/1000.0,curve[0].x,curve[1].x,curve[2].x,curve[3].x),
+                                        getBezier(j/1000.0,curve[0].y,curve[1].y,curve[2].y,curve[3].y),
                                         0);
-                glVertex3fv(&feedback[i][0]);
+                glVertex3fv(&m_feedback[i][j][0]);
             }
         glEnd();
         glDisable(GL_MAP1_VERTEX_3);
@@ -166,7 +167,7 @@ void BSplineWindow::render()
          for(glm::vec3 v : m_firstControlPoints)
             glVertex3f(v.x,v.y,v.z);
     glEnd();
-    //Control Points 2 in blue
+    //Control Points 2 in blueglFlush
     color = {0,0,1};
     m_program->setAttributeValue(m_colAttr,color.x,color.y,color.z);
     glBegin(GL_POINTS);
