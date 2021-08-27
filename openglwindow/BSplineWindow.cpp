@@ -3,9 +3,7 @@
 
 void BSplineWindow::mousePressEvent(QMouseEvent *e){
     if(e->button() == Qt::RightButton){
-        QPoint mousecoords=mapFromGlobal(QCursor::pos());
-        glm::vec2 nmc={mousecoords.x() ,mousecoords.y()};
-        glm::vec3 y(e->pos().x(),e->pos().y(),0);
+        glm::vec2 nmc(e->pos().x(),e->pos().y());
         win2glcoord(nmc);
         std::pair<int,int> cindex = closestKnot(nmc);
 
@@ -40,14 +38,13 @@ void BSplineWindow::mouseReleaseEvent(QMouseEvent *e){
 void BSplineWindow::mouseMoveEvent(QMouseEvent *e){
 
    if( m_isknotselected  ){
-        QPoint mousecoords=mapFromGlobal(QCursor::pos());
-        glm::vec2 nmc={mousecoords.x() ,mousecoords.y()};
+        glm::vec2 nmc(e->pos().x(),e->pos().y());
         win2glcoord(nmc);
         std::pair<int,int> cindex  = closestKnot(nmc);
 
         if(cindex.second == 0 ){
             dragMouse(cindex.first, nmc);
-            //getCurveControlPoints();
+            getCurveControlPoints();
             renderNow();
         }else if (cindex.second== 1){
             m_firstControlPoints[cindex.first] = glm::vec3(nmc,0);
@@ -144,18 +141,23 @@ void BSplineWindow::render()
     m_program->setAttributeValue(m_colAttr,color.x,color.y,color.z);
 
     for(size_t i=0; i< m_firstControlPoints.size() ; i++){
+        std::vector<glm::vec3> feedback(1000);
         curve[0]=m_knots[i];
         curve[1]=(m_firstControlPoints[i]);
         curve[2]=(m_secondControlPoints[i]);
         curve[3]=(m_knots[i+1]);
-        glEnable(GL_MAP1_VERTEX_3);
-        glMap1f(GL_MAP1_VERTEX_3,0.0,1.0, 3,4,&curve[0][0]);
-      //glColor3f( 1.0, 1.0, 0.0 );
+        glColor3f( 1.0, 1.0, 0.0 );
         glBegin(GL_LINE_STRIP);
-            for(int i=0; i < 10000; i++)
-                glEvalCoord1f((GLfloat) i/ 10000.0);
+            for(int i=0; i < 1000; i++){
+                feedback[i] = glm::vec3(getBezier(i/1000.0,curve[0].x,curve[1].x,curve[2].x,curve[3].x),
+                                        getBezier(i/1000.0,curve[0].y,curve[1].y,curve[2].y,curve[3].y),
+                                        0);
+                glVertex3fv(&feedback[i][0]);
+            }
         glEnd();
         glDisable(GL_MAP1_VERTEX_3);
+
+
     }//Control Points 1 in green
     color = {0,1,0};
     m_program->setAttributeValue(m_colAttr,color.x,color.y,color.z);
@@ -322,3 +324,14 @@ std::vector<glm::vec3> BSplineWindow::updateControlPoints(std::vector<glm::vec3>
     return solution;
 }
 
+
+GLfloat BSplineWindow::getBezier(GLfloat x, GLfloat k1, GLfloat c1, GLfloat c2, GLfloat k2){
+    GLfloat s=1-x;
+    GLfloat AB= k1*s + c1*x;
+    GLfloat BC= c1*s + c2*x;
+    GLfloat CD= c2*s + k2*x;
+    GLfloat ABC= AB*s +BC*x;
+    GLfloat BCD= BC*s +CD*x;
+
+    return ABC*s+BCD*x;
+}

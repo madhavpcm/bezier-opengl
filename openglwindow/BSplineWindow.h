@@ -29,8 +29,10 @@ public:
     void getCurveControlPoints();
     std::pair<int,int> closestKnot(glm::vec2 &v);
     std::vector<glm::vec3> updateControlPoints(std::vector<glm::vec3> & rhs);
+    GLfloat getBezier(GLfloat x, GLfloat k1, GLfloat c1, GLfloat c2, GLfloat k2);
     void win2glcoord(glm::vec2 & v);
     void dragMouse(int indx,glm::vec2 &nmc);
+    void nearestPoint(glm::vec3 point, std::vector<glm::vec3>& list);
 private:
     GLint m_posAttr = 0;
     GLint m_colAttr = 0;
@@ -44,7 +46,7 @@ private:
     std::atomic_bool m_isknotselected;
     //void mouseDoubleClickEvent(QMouseEvent *e) override;
 
-    std::vector<glm::vec3> m_knots      ;
+    std::vector<glm::vec3> m_knots;
     std::vector<glm::vec3> m_firstControlPoints;
     std::vector<glm::vec3> m_secondControlPoints;
     QOpenGLShaderProgram *m_program = nullptr;
